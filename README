@@ -1,0 +1,13 @@
+############################################
+
+#  Adafruit RGB LED Matrix Display Driver  #
+
+############################################
+
+This is a design that will enable use of the RGB LED matrix panels
+sold by Adafruit to be used with an FPGA in order to achieve full
+motion graphics.
+
+It is written in VHDL and is currently a work in progress.
+
+Enjoy!
