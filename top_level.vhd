@@ -56,7 +56,7 @@ begin
     -- Simple clock divider
     U_CLKDIV : entity work.clk_div
         generic map (
-            clk_in_freq => 10,
+            clk_in_freq => 2,
             clk_out_freq => 1
         )
         port map (
