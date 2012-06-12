@@ -37,8 +37,8 @@ entity ram_infer is
     port (
         clk   : in  std_logic;
         wren  : in  std_logic;
-        waddr  : in  std_logic_vector(ADDR_WIDTH-1 downto 0);
-        raddr  : in  std_logic_vector(ADDR_WIDTH-1 downto 0);
+        waddr : in  std_logic_vector(ADDR_WIDTH-1 downto 0);
+        raddr : in  std_logic_vector(ADDR_WIDTH-1 downto 0);
         wdata : in  std_logic_vector(DATA_WIDTH-1 downto 0);
         rdata : out std_logic_vector(DATA_WIDTH-1 downto 0)
     );

@@ -29,23 +29,25 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
+use work.rgbmatrix.all;
+
 entity ledctrl is
     generic (
-        IMG_WIDTH  : positive := 32;
-        IMG_HEIGHT : positive := 16;
-        DATA_WIDTH : positive := 3;
-        ADDR_WIDTH : positive := 8
+        IMG_WIDTH : positive;
+        IMG_HEIGHT : positive;
+        DATA_WIDTH : positive;
+        ADDR_WIDTH : positive
     );
     port (
         clk_in  : in std_logic;
         rst     : in std_logic;
         -- LED Panel IO
-        clk_out : out std_logic;
-        rgb1    : out std_logic_vector(2 downto 0);
-        rgb2    : out std_logic_vector(2 downto 0);
+        clk_out  : out std_logic;
+        rgb1     : out std_logic_vector(2 downto 0);
+        rgb2     : out std_logic_vector(2 downto 0);
         led_addr : out std_logic_vector(2 downto 0);
-        lat     : out std_logic;
-        oe      : out std_logic;
+        lat      : out std_logic;
+        oe       : out std_logic;
         -- Memory IO
         ram1_addr : out std_logic_vector(ADDR_WIDTH-1 downto 0);
         ram1_dout : in std_logic_vector(DATA_WIDTH-1 downto 0);
@@ -57,7 +59,7 @@ end ledctrl;
 architecture bhv of ledctrl is
     type STATE_TYPE is (INIT, S1, S1Loop, S2, S3, S4);
     signal state, next_state : STATE_TYPE;
-    signal col_count, next_col_count : unsigned(6 downto 0); -- TODO dimensions are: log2(IMG_WIDTH) downto 0
+    signal col_count, next_col_count : unsigned(6 downto 0); -- TODO dimensions are: (log2(IMG_WIDTH) downto 0)
     signal s_led_addr, next_led_addr : std_logic_vector(2 downto 0);
     signal s_ram1_addr, next_ram1_addr, s_ram2_addr, next_ram2_addr : std_logic_vector(ADDR_WIDTH-1 downto 0);
     signal s_rgb1, next_rgb1, s_rgb2, next_rgb2 : std_logic_vector(2 downto 0);

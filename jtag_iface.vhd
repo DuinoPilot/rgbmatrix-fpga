@@ -1,5 +1,5 @@
 -- Adafruit RGB LED Matrix Display Driver
--- User-editable configuration and constants package
+-- Interface between the virtual JTAG port and the video data controller
 -- 
 -- Copyright (c) 2012 Brian Nezvadovitz <http://nezzen.net>
 -- This software is distributed under the terms of the MIT License shown below.
@@ -25,17 +25,50 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
-package rgbmatrix is
+use work.rgbmatrix.all;
+
+entity jtag_iface is
+    port (
+        tck    : in std_logic;
+        tdi    : in std_logic;
+        aclr   : in std_logic;
+        ir_in  : in std_logic_vector(0 downto 0);
+        v_sdr  : in std_logic;
+        udr    : in std_logic;
+        tdo    : out std_logic;
+        output : out std_logic_vector(6 downto 0)
+    );
+end jtag_iface;
+
+architecture bhv of jtag_iface is
+    type STATE_TYPE is (START);
+    signal state, next_state : STATE_TYPE;
+begin
     
-    -- User configurable options
-    constant NUM_PANELS_WIDE : integer := 2; -- Number of panels daisy-chained together side by side
-    constant NUM_PANELS_TALL : integer := 1; -- Number of panels in the matrix top to bottom
-    constant DEPTH_PER_PIXEL : integer := 1; -- Number of bits per subpixel (multiply by 3 to get BPP)
-                                             -- Common values are: 1 => 3bpp, 4 => 12bpp, 8 => 24bpp
-                                             -- TODO not implemented yet
+    -- Breakout signals to output pins
     
-    -- Special constants (change these at your own risk, stuff might break!)
-    constant PANEL_WIDTH    : integer := 32;
-    constant PANEL_HEIGHT   : integer := 16;
+    -- State register
+    -- process(clk, rst)
+    -- begin
+        -- if(rst = '1') then
+            -- state <= START;
+        -- elsif(rising_edge(clk)) then
+            -- state <= next_state;
+        -- end if;
+    -- end process;
     
-end rgbmatrix;
+    -- Next-state logic
+    --process(state)
+    --begin
+        -- Default register next-state assignments
+        
+        -- Default signal assignments
+        
+        -- case state is
+            -- when START =>
+                -- next_state <= START;
+            -- when others => null;
+        -- end case;
+    -- end process;
+    
+end bhv;

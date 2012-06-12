@@ -26,10 +26,12 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
+use work.rgbmatrix.all;
+
 entity vidctrl is
     generic (
-        DATA_WIDTH : positive := 3;
-        ADDR_WIDTH : positive := 8
+        DATA_WIDTH : positive;
+        ADDR_WIDTH : positive
     );
     port (
         clk : in std_logic;
@@ -88,8 +90,16 @@ begin
             when FILL_RAM =>
                 ram1_wren <= '1';
                 ram2_wren <= '1';
-                ram1_data <= "010"; -- TODO just a test
-                ram2_data <= "001"; -- TODO just a test
+                -- ram_data is given as red/blue/green
+                -- TODO just a test
+                if(unsigned(s_ram1_addr) >= 506) then
+                    ram1_data <= "100";
+                    ram2_data <= "001";
+                else
+                    ram1_data <= "000";
+                    ram2_data <= "000";
+                end if;
+                -- TODO end of test
                 next_ram1_addr <= std_logic_vector( unsigned(s_ram1_addr) + 1 );
                 next_ram2_addr <= std_logic_vector( unsigned(s_ram2_addr) + 1 );
                 if(unsigned(s_ram1_addr) < 2**ADDR_WIDTH-1) then

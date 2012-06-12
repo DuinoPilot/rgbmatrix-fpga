@@ -29,7 +29,7 @@ entity testbench is
 end testbench;
 
 architecture tb of testbench is
-    signal clk_in, rst : std_logic;
+    signal clk_in, rst_n : std_logic;
     signal clk_out, r1, r2, b1, b2, g1, g2, a, b, c, lat, oe : std_logic;
     constant clk_period : time := 10 ns;
 begin
@@ -38,7 +38,7 @@ begin
     UUT : entity work.top_level
         port map (
             clk_in => clk_in,
-            rst => rst,
+            rst_n => rst_n,
             clk_out => clk_out,
             r1 => r1,
             r2 => r2,
@@ -66,9 +66,9 @@ begin
     process
     begin		
         -- Hold reset state
-        rst <= '1';
+        rst_n <= '0';
         wait for clk_period/4;
-        rst <= '0';
+        rst_n <= '1';
         -- Perform the simulation
         wait for clk_period*10;
         -- Wait forever

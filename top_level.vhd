@@ -24,11 +24,14 @@
 
 library ieee;
 use ieee.std_logic_1164.all;
+use ieee.math_real.log2;
+
+use work.rgbmatrix.all; -- Constants & Config
 
 entity top_level is
     port (
         clk_in  : in std_logic;
-        rst     : in std_logic;
+        rst_n   : in std_logic;
         clk_out : out std_logic;
         r1      : out std_logic;
         r2      : out std_logic;
@@ -45,13 +48,18 @@ entity top_level is
 end top_level;
 
 architecture str of top_level is
-    constant DATA_WIDTH : positive := 3;
-    constant ADDR_WIDTH : positive := 8;
-    signal led_clk, led_rst : std_logic;
+    constant DATA_WIDTH : positive := 3; -- one bit for each subpixel
+    constant ADDR_WIDTH : positive := positive(log2(real(NUM_PANELS_WIDE*NUM_PANELS_TALL*256)));
+    signal rst, led_clk, led_rst : std_logic;
     signal ram1_raddr, ram1_waddr, ram2_raddr, ram2_waddr : std_logic_vector(ADDR_WIDTH-1 downto 0);
     signal ram1_din, ram1_dout, ram2_din, ram2_dout : std_logic_vector(DATA_WIDTH-1 downto 0);
     signal ram1_wren, ram2_wren : std_logic;
+    signal jtag_tdo, jtag_tck, jtag_tdi, jtag_sdr, jtag_udr : std_logic;
+    signal jtag_ir_in : std_logic_vector(0 downto 0);
 begin
+    
+    -- Reset is an "active low" signal
+    rst <= not rst_n;
     
     -- Simple clock divider
     U_CLKDIV : entity work.clk_div
@@ -68,8 +76,8 @@ begin
     -- LED panel controller
     U_LEDCTRL : entity work.ledctrl
         generic map (
-            IMG_HEIGHT => 16, -- TODO UNUSED
-            IMG_WIDTH => 32,--64, -- one panel is 32, two panels is 64 [ TODO improve ]
+            IMG_HEIGHT => PANEL_HEIGHT*NUM_PANELS_TALL, -- TODO UNUSED
+            IMG_WIDTH  => PANEL_WIDTH*NUM_PANELS_WIDE,
             DATA_WIDTH => DATA_WIDTH,
             ADDR_WIDTH => ADDR_WIDTH
         )
@@ -96,6 +104,10 @@ begin
     
     -- Video data controller
     U_VIDCTRL : entity work.vidctrl
+        generic map (
+            DATA_WIDTH => DATA_WIDTH,
+            ADDR_WIDTH => ADDR_WIDTH
+        )
         port map (
             clk => clk_in,
             rst => rst,
@@ -135,6 +147,36 @@ begin
             raddr => ram2_raddr,
             waddr => ram2_waddr,
             wren  => ram2_wren
+        );
+        
+    -- Virtual JTAG
+    U_JTAGIFACE : entity work.jtag_iface
+        port map (
+            tck    => jtag_tck,
+            tdi    => jtag_tdi,
+            aclr   => rst, -- TODO is this correct?
+            ir_in  => jtag_ir_in,
+            v_sdr  => jtag_sdr,
+            udr    => jtag_udr,
+            tdo    => jtag_tdo,
+            output => open -- TODO connect to the VIDCTRL
+        );
+    
+    U_vJTAG : entity work.megawizard_vjtag
+        port map (
+            ir_out  => "0",
+            tdo     => jtag_tdo,
+            ir_in   => jtag_ir_in,
+            tck     => jtag_tck,
+            tdi     => jtag_tdi,
+            virtual_state_cdr  => open,
+            virtual_state_cir  => open,
+            virtual_state_e1dr => open,
+            virtual_state_e2dr => open,
+            virtual_state_pdr  => open,
+            virtual_state_sdr  => jtag_sdr,
+            virtual_state_udr  => jtag_udr,
+            virtual_state_uir  => open
         );
     
 end str;
