@@ -31,7 +31,8 @@ end testbench;
 architecture tb of testbench is
     signal clk_in, rst_n : std_logic;
     signal clk_out, r1, r2, b1, b2, g1, g2, a, b, c, lat, oe : std_logic;
-    constant clk_period : time := 10 ns;
+    constant clk_period : time := 20 ns; -- for a 50MHz clock
+    constant num_cycles : positive := 10; -- change this to your liking
 begin
     
     -- Instantiate the Unit Under Test (UUT)
@@ -70,7 +71,7 @@ begin
         wait for clk_period/4;
         rst_n <= '1';
         -- Perform the simulation
-        wait for clk_period*10;
+        wait for clk_period*num_cycles;
         -- Wait forever
         wait;
     end process;

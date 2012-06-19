@@ -22,9 +22,6 @@
 -- FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 -- IN THE SOFTWARE.
 
-library ieee;
-use ieee.std_logic_1164.all;
-
 package rgbmatrix is
     
     -- User configurable options
@@ -32,10 +29,9 @@ package rgbmatrix is
     constant NUM_PANELS_TALL : integer := 1; -- Number of panels in the matrix top to bottom
     constant DEPTH_PER_PIXEL : integer := 1; -- Number of bits per subpixel (multiply by 3 to get BPP)
                                              -- Common values are: 1 => 3bpp, 4 => 12bpp, 8 => 24bpp
-                                             -- TODO not implemented yet
     
     -- Special constants (change these at your own risk, stuff might break!)
-    constant PANEL_WIDTH    : integer := 32;
-    constant PANEL_HEIGHT   : integer := 16;
+    constant PANEL_WIDTH     : integer := 32;
+    constant PANEL_HEIGHT    : integer := 16;
     
 end rgbmatrix;

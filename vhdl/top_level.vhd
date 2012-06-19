@@ -50,11 +50,15 @@ end top_level;
 architecture str of top_level is
     constant DATA_WIDTH : positive := 3; -- one bit for each subpixel
     constant ADDR_WIDTH : positive := positive(log2(real(NUM_PANELS_WIDE*NUM_PANELS_TALL*256)));
-    signal rst, led_clk, led_rst : std_logic;
-    signal ram1_raddr, ram1_waddr, ram2_raddr, ram2_waddr : std_logic_vector(ADDR_WIDTH-1 downto 0);
-    signal ram1_din, ram1_dout, ram2_din, ram2_dout : std_logic_vector(DATA_WIDTH-1 downto 0);
-    signal ram1_wren, ram2_wren : std_logic;
-    signal jtag_tdo, jtag_tck, jtag_tdi, jtag_sdr, jtag_udr : std_logic;
+    signal rst, led_clk : std_logic;
+    signal ram1a_raddr, ram1a_waddr, ram2a_raddr, ram2a_waddr : std_logic_vector(ADDR_WIDTH-1 downto 0);
+    signal ram1b_raddr, ram1b_waddr, ram2b_raddr, ram2b_waddr : std_logic_vector(ADDR_WIDTH-1 downto 0);
+    signal ram1a_din, ram1a_dout, ram2a_din, ram2a_dout : std_logic_vector(DATA_WIDTH-1 downto 0);
+    signal ram1b_din, ram1b_dout, ram2b_din, ram2b_dout, jtag_output : std_logic_vector(DATA_WIDTH-1 downto 0);
+    signal ram1a_wren, ram2a_wren : std_logic;
+    signal ram1b_wren, ram2b_wren : std_logic;
+    signal memory_sel : std_logic;
+    signal jtag_tdo, jtag_tck, jtag_tdi, jtag_udr, jtag_sdr : std_logic;
     signal jtag_ir_in : std_logic_vector(0 downto 0);
 begin
     
@@ -83,23 +87,23 @@ begin
         )
         port map (
             clk_in => led_clk,
-            rst => led_rst,
+            rst => rst,
             clk_out => clk_out,
-            rgb1(2)  => r1,
-            rgb1(1)  => b1,
-            rgb1(0)  => g1,
-            rgb2(2)  => r2,
-            rgb2(1)  => b2,
-            rgb2(0)  => g2,
+            rgb1(2) => r1,
+            rgb1(1) => b1,
+            rgb1(0) => g1,
+            rgb2(2) => r2,
+            rgb2(1) => b2,
+            rgb2(0) => g2,
             led_addr(0) => a,
             led_addr(1) => b,
             led_addr(2) => c,
             lat => lat,
             oe  => oe,
-            ram1_addr => ram1_raddr,
-            ram1_dout => ram1_dout,
-            ram2_addr => ram2_raddr,
-            ram2_dout => ram2_dout
+            ram1_addr => ram1a_raddr,
+            ram1_dout => ram1a_dout,
+            ram2_addr => ram2a_raddr,
+            ram2_dout => ram2a_dout
         );
     
     -- Video data controller
@@ -111,64 +115,62 @@ begin
         port map (
             clk => clk_in,
             rst => rst,
-            rst_out => led_rst,
-            ram1_data => ram1_din,
-            ram1_addr => ram1_waddr,
-            ram1_wren => ram1_wren,
-            ram2_data => ram2_din,
-            ram2_addr => ram2_waddr,
-            ram2_wren => ram2_wren
+            reload => '0', --reload, -- TODO debug
+            jtag_output => jtag_output,
+            jtag_udr => jtag_udr,
+            memory_sel => memory_sel,
+            ram1_data => ram1b_din,
+            ram1_addr => ram1b_waddr,
+            ram1_wren => ram1b_wren,
+            ram2_data => ram2b_din,
+            ram2_addr => ram2b_waddr,
+            ram2_wren => ram2b_wren
         );
     
     -- Memory
-    U_RAM1 : entity work.ram_infer
+    U_MEMORY : entity work.memory
         generic map (
             DATA_WIDTH => DATA_WIDTH,
             ADDR_WIDTH => ADDR_WIDTH
         )
         port map (
-            clk   => clk_in,
-            rdata => ram1_dout,
-            wdata => ram1_din,
-            raddr => ram1_raddr,
-            waddr => ram1_waddr,
-            wren  => ram1_wren
+            clk => clk_in,
+            sel => memory_sel,
+            rdata1a => ram1a_dout,
+            raddr1a => ram1a_raddr,
+            rdata2a => ram2a_dout,
+            raddr2a => ram2a_raddr,
+            wdata1b => ram1b_din,
+            waddr1b => ram1b_waddr,
+            wren1b  => ram1b_wren,
+            wdata2b => ram2b_din,
+            waddr2b => ram2b_waddr,
+            wren2b  => ram2b_wren
         );
     
-    U_RAM2 : entity work.ram_infer
-        generic map (
-            DATA_WIDTH => DATA_WIDTH,
-            ADDR_WIDTH => ADDR_WIDTH
-        )
-        port map (
-            clk   => clk_in,
-            rdata => ram2_dout,
-            wdata => ram2_din,
-            raddr => ram2_raddr,
-            waddr => ram2_waddr,
-            wren  => ram2_wren
-        );
-        
     -- Virtual JTAG
     U_JTAGIFACE : entity work.jtag_iface
+        generic map (
+            WORD_SIZE => DATA_WIDTH
+        )
         port map (
+            rst    => rst,
             tck    => jtag_tck,
             tdi    => jtag_tdi,
-            aclr   => rst, -- TODO is this correct?
             ir_in  => jtag_ir_in,
-            v_sdr  => jtag_sdr,
             udr    => jtag_udr,
+            sdr    => jtag_sdr,
             tdo    => jtag_tdo,
-            output => open -- TODO connect to the VIDCTRL
+            output => jtag_output
         );
     
     U_vJTAG : entity work.megawizard_vjtag
         port map (
-            ir_out  => "0",
-            tdo     => jtag_tdo,
-            ir_in   => jtag_ir_in,
-            tck     => jtag_tck,
-            tdi     => jtag_tdi,
+            ir_out => "0",
+            tdo    => jtag_tdo,
+            ir_in  => jtag_ir_in,
+            tck    => jtag_tck,
+            tdi    => jtag_tdi,
             virtual_state_cdr  => open,
             virtual_state_cir  => open,
             virtual_state_e1dr => open,
