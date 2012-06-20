@@ -21,7 +21,7 @@ foreach device_name [get_device_names -hardware_name $usbblaster_name] {
 }
 puts "Selected device: $test_device";
 
-# Open device 
+# Open device
 proc openport {} {
 	global usbblaster_name
     global test_device
@@ -35,8 +35,6 @@ proc closeport { } {
 }
 
 proc Write_JTAG {send_data} {
-	openport   
-	device_lock -timeout 1000
 	# Shift through DR.  Note that -dr_value is unimportant since we're not actually capturing the value inside the part, just seeing what shifts out
 	puts "Writing -> $send_data"
     # set IR to 1 which is write to reg mode
@@ -44,7 +42,7 @@ proc Write_JTAG {send_data} {
 	device_virtual_dr_shift -dr_value $send_data -instance_index 0  -length 6 -no_captured_dr_value
 	# Set IR back to 0, which is bypass mode
 	device_virtual_ir_shift -instance_index 0 -ir_value 0 -no_captured_ir_value
-	closeport
+	#closeport
 }
 
 # TCP/IP Server
@@ -53,9 +51,15 @@ proc Write_JTAG {send_data} {
 proc Start_Server {port} {
 	set s [socket -server ConnAccept $port]
 	puts "Started socket server on port $port"
+
+    puts "- Openport & Device lock"
+	openport
+	device_lock -timeout 10000
+    puts "- Waiting for incoming data..."
+
 	vwait forever
 }
-	
+
 proc ConnAccept {sock addr port} {
     global conn
     # Record the client's information
@@ -80,7 +84,7 @@ proc IncomingData {sock} {
         set data_len [string length $line]
         if {$data_len >= 6} then {
             # Extract the first 6 bits
-            set line [string range $line 0 5] 
+            set line [string range $line 0 5]
             # Send the vJTAG Commands to update the register
             Write_JTAG $line
         }

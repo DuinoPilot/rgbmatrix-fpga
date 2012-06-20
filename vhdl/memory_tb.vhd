@@ -1,5 +1,4 @@
--- Adafruit RGB LED Matrix Display Driver
--- Testbench for simulation of the top level entity
+-- Testbench for simulation of the special memory for the framebuffer
 -- 
 -- Copyright (c) 2012 Brian Nezvadovitz <http://nezzen.net>
 -- This software is distributed under the terms of the MIT License shown below.
@@ -25,41 +24,36 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
-entity testbench is
-end testbench;
+use work.rgbmatrix.all;
 
-architecture tb of testbench is
-    signal clk_in, rst_n : std_logic;
-    signal clk_out, r1, r2, b1, b2, g1, g2, a, b, c, lat, oe : std_logic;
+entity memory_tb is
+end memory_tb;
+
+architecture tb of memory_tb is
+    signal rst, clk_wr, clk_rd : std_logic;
+    signal input, output : std_logic_vector(DATA_WIDTH-1 downto 0);
+    signal addr : std_logic_vector(ADDR_WIDTH-1 downto 0);
     constant clk_period : time := 20 ns; -- for a 50MHz clock
-    constant num_cycles : positive := 10; -- change this to your liking
+    constant num_cycles : positive := 50; -- change this to your liking
 begin
     
     -- Instantiate the Unit Under Test (UUT)
-    UUT : entity work.top_level
+    UUT : entity work.memory
         port map (
-            clk_in => clk_in,
-            rst_n => rst_n,
-            clk_out => clk_out,
-            r1 => r1,
-            r2 => r2,
-            b1 => b1,
-            b2 => b2,
-            g1 => g1,
-            g2 => g2,
-            a => a,
-            b => b,
-            c => c,
-            lat => lat,
-            oe => oe
+            rst    => rst,
+            clk_wr => clk_wr,
+            input  => input,
+            clk_rd => clk_rd,
+            addr   => addr,
+            output => output
         );
     
     -- Clock process
     process
     begin
-        clk_in <= '0';
+        clk_rd <= '0';
         wait for clk_period/2;
-        clk_in <= '1';
+        clk_rd <= '1';
         wait for clk_period/2;
     end process;
     
@@ -67,11 +61,26 @@ begin
     process
     begin		
         -- Hold reset state
-        rst_n <= '0';
-        wait for clk_period/2;
-        rst_n <= '1';
+        rst <= '1';
+        clk_wr <= '0';
+        input <= "000000";
+        addr <= (others => '0');
+        wait for clk_period;
+        rst <= '0';
         -- Perform the simulation
-        wait for clk_period*num_cycles;
+        wait for clk_period;
+        input <= "000111";
+        clk_wr <= '1';
+        wait for clk_period;
+        input <= "111000";
+        wait for clk_period;
+        clk_wr <= '0';
+        wait for clk_period;
+        input <= "010101";
+        clk_wr <= '1';
+        wait for clk_period;
+        clk_wr <= '0';
+        wait for clk_period*3;
         -- Wait forever
         wait;
     end process;

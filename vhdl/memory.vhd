@@ -1,5 +1,5 @@
 -- Adafruit RGB LED Matrix Display Driver
--- Contains the 4 memories used for graphics data and a mux to switch between them
+-- Special memory for the framebuffer
 -- 
 -- Copyright (c) 2012 Brian Nezvadovitz <http://nezzen.net>
 -- This software is distributed under the terms of the MIT License shown below.
@@ -22,135 +22,56 @@
 -- FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 -- IN THE SOFTWARE.
 
+-- For more information on how to infer RAMs on Altera devices see this page:
+-- http://quartushelp.altera.com/current/mergedProjects/hdl/vhdl/vhdl_pro_ram_inferred.htm
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use ieee.std_logic_unsigned.all;
 
 use work.rgbmatrix.all;
 
 entity memory is
-    generic (
-        DATA_WIDTH : positive;
-        ADDR_WIDTH : positive
-    );
     port (
-        clk     : in std_logic;
-        sel     : in std_logic;
-        rdata1a : out std_logic_vector(DATA_WIDTH-1 downto 0);
-        raddr1a : in std_logic_vector(ADDR_WIDTH-1 downto 0);
-        rdata2a : out std_logic_vector(DATA_WIDTH-1 downto 0);
-        raddr2a : in std_logic_vector(ADDR_WIDTH-1 downto 0);
-        wdata1b : in std_logic_vector(DATA_WIDTH-1 downto 0);
-        waddr1b : in std_logic_vector(ADDR_WIDTH-1 downto 0);
-        wren1b  : in std_logic;
-        wdata2b : in std_logic_vector(DATA_WIDTH-1 downto 0);
-        waddr2b : in std_logic_vector(ADDR_WIDTH-1 downto 0);
-        wren2b  : in std_logic
+        rst    : in  std_logic;
+        clk_wr : in  std_logic;
+        input  : in  std_logic_vector(DATA_WIDTH-1 downto 0);
+        clk_rd : in  std_logic;
+        addr   : in  std_logic_vector(ADDR_WIDTH-1 downto 0);
+        output : out std_logic_vector(DATA_WIDTH-1 downto 0)
     );
 end memory;
 
-architecture str of memory is
-    signal s_wren1a, s_wren2a, s_wren1b, s_wren2b : std_logic;
-    signal s_rdata1a : std_logic_vector(DATA_WIDTH-1 downto 0);
-    signal s_wdata1a : std_logic_vector(DATA_WIDTH-1 downto 0);
-    signal s_rdata2a : std_logic_vector(DATA_WIDTH-1 downto 0);
-    signal s_wdata2a : std_logic_vector(DATA_WIDTH-1 downto 0);
-    signal s_rdata1b : std_logic_vector(DATA_WIDTH-1 downto 0);
-    signal s_wdata1b : std_logic_vector(DATA_WIDTH-1 downto 0);
-    signal s_rdata2b : std_logic_vector(DATA_WIDTH-1 downto 0);
-    signal s_wdata2b : std_logic_vector(DATA_WIDTH-1 downto 0);
-    signal s_raddr1a : std_logic_vector(ADDR_WIDTH-1 downto 0);
-    signal s_waddr1a : std_logic_vector(ADDR_WIDTH-1 downto 0);
-    signal s_raddr2a : std_logic_vector(ADDR_WIDTH-1 downto 0);
-    signal s_waddr2a : std_logic_vector(ADDR_WIDTH-1 downto 0);
-    signal s_raddr1b : std_logic_vector(ADDR_WIDTH-1 downto 0);
-    signal s_waddr1b : std_logic_vector(ADDR_WIDTH-1 downto 0);
-    signal s_raddr2b : std_logic_vector(ADDR_WIDTH-1 downto 0);
-    signal s_waddr2b : std_logic_vector(ADDR_WIDTH-1 downto 0);
+architecture bhv of memory is
+    -- Internal signals
+    signal waddr, next_waddr : std_logic_vector(ADDR_WIDTH-1 downto 0);
+    
+    -- Inferred RAM storage signal
+    type ram is array(2**ADDR_WIDTH-1 downto 0) of std_logic_vector(DATA_WIDTH-1 downto 0);
+    signal ram_block : ram;
 begin
     
-    -- Higher 8 lines, first buffer
-    U_RAM1A : entity work.ram_infer
-        generic map (
-            DATA_WIDTH => DATA_WIDTH,
-            ADDR_WIDTH => ADDR_WIDTH
-        )
-        port map (
-            clk   => clk,
-            rdata => s_rdata1a,
-            wdata => s_wdata1a,
-            raddr => s_raddr1a,
-            waddr => s_waddr1a,
-            wren  => s_wren1a
-        );
+    -- Create an adder to calculate the next write address
+    next_waddr <= std_logic_vector( unsigned(waddr) + 1 );
     
-    -- Higher 8 lines, second buffer
-    U_RAM1B : entity work.ram_infer
-        generic map (
-            DATA_WIDTH => DATA_WIDTH,
-            ADDR_WIDTH => ADDR_WIDTH
-        )
-        port map (
-            clk   => clk,
-            rdata => s_rdata1b,
-            wdata => s_wdata1b,
-            raddr => s_raddr1b,
-            waddr => s_waddr1b,
-            wren  => s_wren1b
-        );
+    -- Write process for the memory
+    process(rst, clk_wr, next_waddr)
+    begin
+        if(rst = '1') then
+            waddr <= (others => '0'); -- reset the write address to the beginning
+        elsif(rising_edge(clk_wr)) then
+            ram_block(conv_integer(waddr)) <= input; -- store input at the current write address
+            waddr <= next_waddr; -- allow the write address to increment
+        end if;
+    end process;
     
-    -- Lower 8 lines, first buffer
-    U_RAM2A : entity work.ram_infer
-        generic map (
-            DATA_WIDTH => DATA_WIDTH,
-            ADDR_WIDTH => ADDR_WIDTH
-        )
-        port map (
-            clk   => clk,
-            rdata => s_rdata2a,
-            wdata => s_wdata2a,
-            raddr => s_raddr2a,
-            waddr => s_waddr2a,
-            wren  => s_wren2a
-        );
-    
-    -- Lower 8 lines, second buffer
-    U_RAM2B : entity work.ram_infer
-        generic map (
-            DATA_WIDTH => DATA_WIDTH,
-            ADDR_WIDTH => ADDR_WIDTH
-        )
-        port map (
-            clk   => clk,
-            rdata => s_rdata2b,
-            wdata => s_wdata2b,
-            raddr => s_raddr2b,
-            waddr => s_waddr2b,
-            wren  => s_wren2b
-        );
-    
-    -- Muxes to switch between buffers
-    
-    rdata1a <= s_rdata1a WHEN sel = '0' ELSE s_rdata1b;
-    s_wdata1a <= (others => 'X') WHEN sel = '0' ELSE wdata1b;
-    s_raddr1a <= raddr1a WHEN sel = '0' ELSE (others => 'X');
-    s_waddr1a <= (others => 'X') WHEN sel = '0' ELSE waddr1b;
-    s_wren1a  <= '0' WHEN sel = '0' ELSE wren1b;
-    
-    rdata2a <= s_rdata2a WHEN sel = '0' ELSE s_rdata2b;
-    s_wdata2a <= (others => 'X') WHEN sel = '0' ELSE wdata2b;
-    s_raddr2a <= raddr2a WHEN sel = '0' ELSE (others => 'X');
-    s_waddr2a <= (others => 'X') WHEN sel = '0' ELSE waddr2b;
-    s_wren2a  <= '0' WHEN sel = '0' ELSE wren2b;
-    
-    s_wdata1b <= wdata1b WHEN sel = '0' ELSE (others => 'X');
-    s_raddr1b <= (others => 'X') WHEN sel = '0' ELSE raddr1a;
-    s_waddr1b <= waddr1b WHEN sel = '0' ELSE (others => 'X');
-    s_wren1b  <= wren1b  WHEN sel = '0' ELSE '0';
-    
-    s_wdata2b <= wdata2b WHEN sel = '0' ELSE (others => 'X');
-    s_raddr2b <= (others => 'X') WHEN sel = '0' ELSE raddr2a;
-    s_waddr2b <= waddr2b WHEN sel = '0' ELSE (others => 'X');
-    s_wren2b  <= wren2b  WHEN sel = '0' ELSE '0';
-    
-end str;
+    -- Read process for the memory
+    process(clk_rd)
+    begin
+        if(rising_edge(clk_rd)) then
+            output <= ram_block(conv_integer(addr)); -- retrieve contents at the given read address
+        end if;
+    end process;
+
+end bhv;

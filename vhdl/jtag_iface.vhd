@@ -31,62 +31,73 @@ use ieee.std_logic_1164.all;
 use work.rgbmatrix.all;
 
 entity jtag_iface is
-    generic (
-        WORD_SIZE : positive
-    );
     port (
-        rst    : in std_logic;
-        tck    : in std_logic;
-        tdi    : in std_logic;
-        ir_in  : in std_logic_vector(0 downto 0);
-        udr    : in std_logic;
-        sdr    : in std_logic;
-        tdo    : out std_logic;
-        output : out std_logic_vector(WORD_SIZE-1 downto 0)
+        rst    : in  std_logic;
+        output : out std_logic_vector(DATA_WIDTH-1 downto 0);
+        valid  : out std_logic
     );
 end jtag_iface;
 
 architecture bhv of jtag_iface is
-    signal dr1_select : std_logic;
-    signal dr0 : std_logic_vector(0 downto 0);
-    signal dr1, out_reg : std_logic_vector(WORD_SIZE-1 downto 0);
+    -- External/raw JTAG signals
+    signal jtag_tdo, jtag_tck, jtag_tdi, jtag_udr, jtag_sdr : std_logic;
+    signal jtag_ir_in : std_logic_vector(0 downto 0);
+    -- Internal JTAG signals
+    signal dr_select : std_logic;
+    signal dr0 : std_logic;
+    signal dr1 : std_logic_vector(DATA_WIDTH-1 downto 0);
 begin
     
-    -- Break out the instruction register which is used to select the destination register
-    dr1_select <= ir_in(0);
+    -- Altera Virtual JTAG "megafunction"
+    U_vJTAG : entity work.megawizard_vjtag
+        port map (
+            ir_out => "0",
+            tdo    => jtag_tdo,
+            ir_in  => jtag_ir_in,
+            tck    => jtag_tck,
+            tdi    => jtag_tdi,
+            virtual_state_cdr  => open,
+            virtual_state_cir  => open,
+            virtual_state_e1dr => open,
+            virtual_state_e2dr => open,
+            virtual_state_pdr  => open,
+            virtual_state_sdr  => jtag_sdr,
+            virtual_state_udr  => jtag_udr,
+            virtual_state_uir  => open
+        );
     
-    -- Clocked process to shift in data
-    process(tck, rst)
+    -- Break out the instruction register which we use to select the destination data register
+    dr_select <= jtag_ir_in(0);
+    
+    -- Clocked process to shift data into the data registers
+    process(rst, jtag_tck, dr_select)
     begin
         if(rst = '1') then
-            dr0 <= (others => '0');
+            dr0 <= '0';
             dr1 <= (others => '0');
-        elsif(rising_edge(tck)) then
-            dr0(0) <= tdi;
-            if(sdr = '1' and dr1_select = '1') then -- JTAG is in Shift DR state and data register 1 is selected
-                dr1 <= (tdi & dr1(WORD_SIZE-1 downto 1)); -- shift in the new MSB, drop the LSB
+        elsif(rising_edge(jtag_tck)) then
+            dr0 <= jtag_tdi;
+            if(jtag_sdr = '1' and dr_select = '1') then -- JTAG is in Shift DR state and data register 1 is selected
+                dr1 <= (jtag_tdi & dr1(DATA_WIDTH-1 downto 1)); -- shift in the new MSB, drop the LSB
             end if;
         end if;
     end process;
     
     -- Maintain the TDO continuity
-    process(dr1_select, dr0, dr1)
+    process(dr_select, dr0, dr1)
     begin
-        if(dr1_select = '1') then
-            tdo <= dr1(0);
+        if(dr_select = '1') then
+            jtag_tdo <= dr1(0);
         else
-            tdo <= dr0(0);
+            jtag_tdo <= dr0;
         end if;
     end process;
     
-    -- The udr signal will assert when the data has been transmitted and it's time to update the output
-    -- Note that connecting it directly will cause an unwanted behavior as data is shifted through it
-    process(udr)
-    begin
-        if(rising_edge(udr)) then
-            out_reg <= dr1;
-        end if;
-    end process;
-    output <= out_reg;
+    -- The UDR signal will assert when the data has been transmitted and the data register has
+    -- captured the word. Ignoring this signal will cause an unwanted behavior as data is shifted
+    -- through the data register. In this case we are using a memory to store the value in DR1
+    -- and we use UDR as the write clock (rising edge triggered).
+    valid <= jtag_udr;
+    output <= dr1;
     
 end bhv;

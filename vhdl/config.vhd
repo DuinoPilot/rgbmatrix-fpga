@@ -22,6 +22,10 @@
 -- FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 -- IN THE SOFTWARE.
 
+library ieee;
+use ieee.math_real.log2;
+use ieee.math_real.ceil;
+
 package rgbmatrix is
     
     -- User configurable options
@@ -31,7 +35,17 @@ package rgbmatrix is
                                              -- Common values are: 1 => 3bpp, 4 => 12bpp, 8 => 24bpp
     
     -- Special constants (change these at your own risk, stuff might break!)
-    constant PANEL_WIDTH     : integer := 32;
-    constant PANEL_HEIGHT    : integer := 16;
+    constant PANEL_WIDTH     : integer := 32; -- width of the panel in pixels
+    constant PANEL_HEIGHT    : integer := 16; -- height of the panel in pixels
+    
+    constant DATA_WIDTH : positive := 6; -- one bit for each subpixel (3), times the number
+                                         -- of simultaneous lines (a.k.a. pixels per word) (2)
+    constant ADDR_WIDTH : positive := positive(log2(real(NUM_PANELS_WIDE*NUM_PANELS_TALL*256)));
+                                         -- total number of panels (width*height) times number
+                                         -- of pixels per panel (512) divided by the number of
+                                         -- simultaneous lines (2)
+    
+    constant IMG_HEIGHT : positive := PANEL_HEIGHT*NUM_PANELS_TALL; -- TODO UNUSED
+    constant IMG_WIDTH  : positive := PANEL_WIDTH*NUM_PANELS_WIDE;
     
 end rgbmatrix;

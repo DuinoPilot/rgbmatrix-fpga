@@ -18,7 +18,7 @@ ByteBlaster and provides a vendor-specific JTAG wrapper.
 Features implemented so far:
 * Read graphics data from RAM and display it on panel
 * Support multiple panels
+* Read video data from external device and fill into RAM
 
 Features to become implemented soon:
 * Better than 3 bits per pixel (any multiple of 3)
-* Read video data from external device and fill into RAM
