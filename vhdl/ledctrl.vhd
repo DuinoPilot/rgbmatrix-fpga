@@ -57,7 +57,7 @@ architecture bhv of ledctrl is
     signal state, next_state : STATE_TYPE;
     
     -- State machine signals
-    signal col_count, next_col_count : unsigned(6 downto 0); -- TODO dimensions are: (log2(IMG_WIDTH) downto 0)
+    signal col_count, next_col_count : unsigned(IMG_WIDTH_LOG2 downto 0);
     signal s_led_addr, next_led_addr : std_logic_vector(2 downto 0);
     signal s_ram_addr, next_ram_addr : std_logic_vector(ADDR_WIDTH-1 downto 0);
     signal s_rgb1, next_rgb1, s_rgb2, next_rgb2 : std_logic_vector(2 downto 0);
@@ -67,7 +67,7 @@ begin
     -- A simple clock divider is used here because the LED matrix should be run relatively slow
     U_CLKDIV : entity work.clk_div
         generic map (
-            clk_in_freq => 10,
+            clk_in_freq => 25,
             clk_out_freq => 1
         )
         port map (

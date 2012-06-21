@@ -1,93 +1,100 @@
 # Basic TCP server gateway for the (virtual) JTAG Interface
-# WORK IN PROGRESS!
-# TCL script derived from the example posted on
+# Part of the Adafruit RGB LED Matrix Display Driver project
+
+# You can run this script through the Quartus II SignalTap II Tcl interpreter
+# (quartus_stp.exe) by invoking it with the -t parameter.
+
+# This TCL script is derived from the example posted online at
 # http://idle-logic.com/2012/04/15/talking-to-the-de0-nano-using-the-virtual-jtag-interface/
+# TCP/IP server code dervied from Tcl Developer Exchange - http://www.tcl.tk/about/netserver.html
+# The JTAG portion of the script is derived from some of the examples from Altera
 
-# This portion of the script is derived from some of the examples from Altera
+proc Script_Main {} {
+    # Print welcome banner
+    puts "------------------------------------------------"
+    puts ""
+    puts " <<-=*\[  JTAG server for RGB LED Matrix  \]*-=>> "
+    puts ""
+    
+    # Find the USB-Blaster device attached to the system
+    puts "* Locating USB-Blaster device..."
+    foreach hardware_name [get_hardware_names] {
+        if { [string match "USB-Blaster*" $hardware_name] } {
+            set usbblaster_name $hardware_name
+        }
+    }
 
-global usbblaster_name
-global test_device
-foreach hardware_name [get_hardware_names] {
-	if { [string match "USB-Blaster*" $hardware_name] } {
-		set usbblaster_name $hardware_name
-	}
-}
-puts "Select JTAG chain connected to $usbblaster_name.";
-# List all devices on the chain, and select the first device on the chain.
-foreach device_name [get_device_names -hardware_name $usbblaster_name] {
-	if { [string match "@1*" $device_name] } {
-		set test_device $device_name
-	}
-}
-puts "Selected device: $test_device";
-
-# Open device 
-proc openport {} {
-	global usbblaster_name
-    global test_device
-	open_device -hardware_name $usbblaster_name -device_name $test_device
-}
-
-# Close device.  Just used if communication error occurs
-proc closeport { } {
-	catch {device_unlock}
-	catch {close_device}
-}
-
-proc Write_JTAG {send_data} {
-	openport   
-	device_lock -timeout 1000
-	# Shift through DR.  Note that -dr_value is unimportant since we're not actually capturing the value inside the part, just seeing what shifts out
-	puts "Writing -> $send_data"
-    # set IR to 1 which is write to reg mode
-	device_virtual_ir_shift -instance_index 0 -ir_value 1 -no_captured_ir_value
-	device_virtual_dr_shift -dr_value $send_data -instance_index 0  -length 6 -no_captured_dr_value
-	# Set IR back to 0, which is bypass mode
-	device_virtual_ir_shift -instance_index 0 -ir_value 0 -no_captured_ir_value
-	closeport
+    # List all devices on the chain, and select the first device on the chain.
+    puts "* Finding devices attached to $usbblaster_name..."
+    foreach device_name [get_device_names -hardware_name $usbblaster_name] {
+        if { [string match "@1*" $device_name] } {
+            set jtag_device $device_name
+        }
+    }
+    
+    # Open the selected JTAG device
+    puts "* Opening $jtag_device"
+    open_device -hardware_name $usbblaster_name -device_name $jtag_device
+    
+    # Start the TCP/IP listener
+    puts "* Starting server on port 1337..."
+    set s [socket -server ConnAccept 1337]
+    
+    # Wait for connections...
+    vwait forever
+    #catch {close_device}
 }
 
-# TCP/IP Server
-# Code Dervied from Tcl Developer Exchange - http://www.tcl.tk/about/netserver.html
-
-proc Start_Server {port} {
-	set s [socket -server ConnAccept $port]
-	puts "Started socket server on port $port"
-	vwait forever
+proc Write_JTAG_DR {send_data} {
+    #puts "DEBUG: Write_JTAG_DR $send_data"
+    device_lock -timeout 10000
+    device_virtual_dr_shift -dr_value $send_data -instance_index 0 -length 6 -value_in_hex -no_captured_dr_value
+    catch {device_unlock}
 }
-	
+
+proc Write_JTAG_IR {send_data} {
+    puts "DEBUG: Write_JTAG_IR $send_data"
+    device_lock -timeout 10000
+    device_virtual_ir_shift -instance_index 0 -ir_value $send_data -no_captured_ir_value
+    catch {device_unlock}
+}
+
 proc ConnAccept {sock addr port} {
     global conn
-    # Record the client's information
-    puts "Accept $sock from $addr port $port"
+    puts "* Connection from $addr $port opened"
     set conn(addr,$sock) [list $addr $port]
-    # Ensure that each "puts" by the server
-    # results in a network transmission
+    # Ensure that each "puts" by the server results in a network transmission
     fconfigure $sock -buffering line
     # Set up a callback for when the client sends data
     fileevent $sock readable [list IncomingData $sock]
+    # Set IR to 1 which is "write to register" mode
+    Write_JTAG_IR 1
 }
 
 proc IncomingData {sock} {
     global conn
-    # Check end of file or abnormal connection drop, then write the data to the vJTAG
+    # Check for EOF or abnormal connection drop
     if {[eof $sock] || [catch {gets $sock line}]} {
+        # Set IR back to 0, which is "bypass" mode
+        Write_JTAG_IR 0
+        # Clean up the socket
         close $sock
-        puts "Close $conn(addr,$sock)"
+        puts "* Connection with $conn(addr,$sock) closed"
         unset conn(addr,$sock)
     } else {
-        # Let's check for it and trap it
+        # Incoming data from the client
         set data_len [string length $line]
-        if {$data_len >= 6} then {
-            # Extract the first 6 bits
-            set line [string range $line 0 5] 
-            # Send the vJTAG Commands to update the register
-            Write_JTAG $line
+        # Check length
+        if {$data_len == 2} then {
+            # Write to the data register
+            Write_JTAG_DR $line
+        } else {
+            puts "DEBUG: Ignored incoming data of length $data_len"
         }
     }
 }
 
-#Start thet Server at Port 1337
-Start_Server 1337
+# Start the script!
+Script_Main
 
 #EOF
