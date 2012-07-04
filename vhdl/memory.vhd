@@ -1,5 +1,5 @@
 -- Adafruit RGB LED Matrix Display Driver
--- Special memory for the framebuffer
+-- Special memory for the framebuffer with separate read/write clocks
 -- 
 -- Copyright (c) 2012 Brian Nezvadovitz <http://nezzen.net>
 -- This software is distributed under the terms of the MIT License shown below.

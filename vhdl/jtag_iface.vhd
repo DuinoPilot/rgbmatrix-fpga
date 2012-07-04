@@ -27,6 +27,7 @@
 
 library ieee;
 use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
 
 use work.rgbmatrix.all;
 
@@ -46,6 +47,9 @@ architecture bhv of jtag_iface is
     signal dr_select : std_logic;
     signal dr0 : std_logic;
     signal dr1 : std_logic_vector(DATA_WIDTH-1 downto 0);
+    -- Internal counter signals
+    signal has_word : std_logic;
+    signal bit_count, next_bit_count : unsigned(15 downto 0);
 begin
     
     -- Altera Virtual JTAG "megafunction"
@@ -70,15 +74,25 @@ begin
     dr_select <= jtag_ir_in(0);
     
     -- Clocked process to shift data into the data registers
+    next_bit_count <= bit_count + 1;
     process(rst, jtag_tck, dr_select)
     begin
         if(rst = '1') then
             dr0 <= '0';
             dr1 <= (others => '0');
+            bit_count <= (others => '0');
         elsif(rising_edge(jtag_tck)) then
             dr0 <= jtag_tdi;
             if(jtag_sdr = '1' and dr_select = '1') then -- JTAG is in Shift DR state and data register 1 is selected
-                dr1 <= (jtag_tdi & dr1(DATA_WIDTH-1 downto 1)); -- shift in the new MSB, drop the LSB
+                dr1 <= (jtag_tdi & dr1(DATA_WIDTH-1 downto 1)); -- drop the LSB, shift in the new MSB
+                -- Check if we have a full word of data
+                if(bit_count < DATA_WIDTH-1) then
+                    has_word <= '0';
+                    bit_count <= next_bit_count; -- increment bit count
+                else
+                    has_word <= '1';
+                    bit_count <= (others => '0'); -- reset bit count
+                end if;
             end if;
         end if;
     end process;
@@ -95,9 +109,13 @@ begin
     
     -- The UDR signal will assert when the data has been transmitted and the data register has
     -- captured the word. Ignoring this signal will cause an unwanted behavior as data is shifted
-    -- through the data register. In this case we are using a memory to store the value in DR1
-    -- and we use UDR as the write clock (rising edge triggered).
-    valid <= jtag_udr;
+    -- through the data register. In this case we are using a memory to store the value in DR1.
+    -- The original idea was to use UDR as the write clock (rising edge triggered), but this
+    -- requires all JTAG transfers to be exactly one word. Instead, a bit counter is implemented
+    -- that indicates when a full word is shifted in by the JTAG clock (TCK).
+    valid <= has_word;
+    
+    -- Break out the data register to the output
     output <= dr1;
     
 end bhv;

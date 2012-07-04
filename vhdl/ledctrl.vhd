@@ -126,7 +126,7 @@ begin
                 s_oe <= '1'; -- disable display during init phase
                 next_state <= S1;
             when S1 =>
-                -- Pixel data is given as a word of R1/B1/G1/R2/B2/G2 bits
+                -- Pixel data is given as a word of R1/G1/B1/R2/G2/B2 bits
                 next_rgb1 <= pixel(5 downto 3);
                 next_rgb2 <= pixel(2 downto 0);
                 next_col_count <= col_count + 1;

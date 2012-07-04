@@ -52,11 +52,11 @@ architecture str of top_level is
     
     -- Memory signals
     signal addr : std_logic_vector(ADDR_WIDTH-1 downto 0);
-    signal data_incoming, data_outgoing : std_logic_vector(DATA_WIDTH-1 downto 0);
+    signal data_incoming : std_logic_vector(DATA_WIDTH-1 downto 0);
+    signal data_outgoing : std_logic_vector(DATA_WIDTH-1 downto 0);
     
     -- Flags
     signal data_valid : std_logic;
-
 begin
     
     -- Reset is an "active low" input
@@ -70,11 +70,11 @@ begin
             -- Connection to LED panel
             clk_out => clk_out,
             rgb1(2) => r1,
-            rgb1(1) => b1,
-            rgb1(0) => g1,
+            rgb1(1) => g1,
+            rgb1(0) => b1,
             rgb2(2) => r2,
-            rgb2(1) => b2,
-            rgb2(0) => g2,
+            rgb2(1) => g2,
+            rgb2(0) => b2,
             led_addr(2) => c,
             led_addr(1) => b,
             led_addr(0) => a,
