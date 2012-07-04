@@ -9,6 +9,10 @@
 # TCP/IP server code dervied from Tcl Developer Exchange - http://www.tcl.tk/about/netserver.html
 # The JTAG portion of the script is derived from some of the examples from Altera
 
+# After starting this script, connect to localhost on port 1337 and send strings
+# of hex characters followed by a newline ("\n") character. The strings must be
+# exactly 6+1 character long (this corresponds to 24 bits of data to be written).
+
 proc Script_Main {} {
     # Print welcome banner
     puts "------------------------------------------------"
@@ -48,7 +52,7 @@ proc Script_Main {} {
 proc Write_JTAG_DR {send_data} {
     #puts "DEBUG: Write_JTAG_DR $send_data"
     device_lock -timeout 10000
-    device_virtual_dr_shift -dr_value $send_data -instance_index 0 -length 6 -value_in_hex -no_captured_dr_value
+    device_virtual_dr_shift -dr_value $send_data -instance_index 0 -length 24 -value_in_hex -no_captured_dr_value
     catch {device_unlock}
 }
 
@@ -85,11 +89,11 @@ proc IncomingData {sock} {
         # Incoming data from the client
         set data_len [string length $line]
         # Check length
-        if {$data_len == 2} then {
+        if {$data_len*4 == 24} then {
             # Write to the data register
             Write_JTAG_DR $line
         } else {
-            puts "DEBUG: Ignored incoming data of length $data_len"
+            puts "DEBUG: Ignored incoming data of length $data_len chars"
         }
     }
 }
