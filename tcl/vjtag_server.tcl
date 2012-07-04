@@ -1,5 +1,6 @@
 # Basic TCP server gateway for the (virtual) JTAG Interface
 # Part of the Adafruit RGB LED Matrix Display Driver project
+# Written partially by Brian Nezvadovitz
 
 # You can run this script through the Quartus II SignalTap II Tcl interpreter
 # (quartus_stp.exe) by invoking it with the -t parameter.
@@ -7,11 +8,11 @@
 # This TCL script is derived from the example posted online at
 # http://idle-logic.com/2012/04/15/talking-to-the-de0-nano-using-the-virtual-jtag-interface/
 # TCP/IP server code dervied from Tcl Developer Exchange - http://www.tcl.tk/about/netserver.html
-# The JTAG portion of the script is derived from some of the examples from Altera
+# The JTAG portion of the script is derived from some of the examples from Altera.
 
 # After starting this script, connect to localhost on port 1337 and send strings
-# of hex characters followed by a newline ("\n") character. The strings must be
-# exactly 6+1 character long (this corresponds to 24 bits of data to be written).
+# of hex characters followed by a newline ("\n") character. The hex strings must be
+# exactly 48 character long (this corresponds to 192 bits of data to be written).
 
 proc Script_Main {} {
     # Print welcome banner
@@ -52,7 +53,7 @@ proc Script_Main {} {
 proc Write_JTAG_DR {send_data} {
     #puts "DEBUG: Write_JTAG_DR $send_data"
     device_lock -timeout 10000
-    device_virtual_dr_shift -dr_value $send_data -instance_index 0 -length 24 -value_in_hex -no_captured_dr_value
+    device_virtual_dr_shift -dr_value $send_data -instance_index 0 -length 192 -value_in_hex -no_captured_dr_value
     catch {device_unlock}
 }
 
@@ -89,7 +90,7 @@ proc IncomingData {sock} {
         # Incoming data from the client
         set data_len [string length $line]
         # Check length
-        if {$data_len*4 == 24} then {
+        if {$data_len*4 == 192} then {
             # Write to the data register
             Write_JTAG_DR $line
         } else {

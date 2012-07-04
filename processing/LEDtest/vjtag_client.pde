@@ -6,6 +6,7 @@
 
 // Libraries
 import processing.net.*;
+import java.math.BigInteger;
 
 // Globals
 Client jtagsrv;
@@ -30,48 +31,56 @@ void refresh(PImage img) {
   // then send it over the connection to the virtual JTAG server
   int wordCount = 0;
   int middlePixel = (img.width*img.height)/2;
+  int p = 7; // There are 8 bits per sub-pixel, but for now we only use the highest bit
   // For each pair of horizontal lines in the image...
   for(int i = 0; i < middlePixel; i += img.width) {
-    // Split the lines into chunks of 4 pixels
-    for(int j = i; j < i+img.width; j += 4) {
-      long word = 0;
-      // Get 24 bits of color data -- 12 bits from the top ...
-      word |= color_to_RGB_array(img.pixels[j+0])[7] << 2;
-      word |= color_to_RGB_array(img.pixels[j+1])[7] << 8;
-      word |= color_to_RGB_array(img.pixels[j+2])[7] << 14;
-      word |= color_to_RGB_array(img.pixels[j+3])[7] << 20;
-      // ... and 12 bits from the bottom
-      word |= color_to_RGB_array(img.pixels[middlePixel+j+0])[7] >> 1;
-      word |= color_to_RGB_array(img.pixels[middlePixel+j+1])[7] << 5;
-      word |= color_to_RGB_array(img.pixels[middlePixel+j+2])[7] << 11;
-      word |= color_to_RGB_array(img.pixels[middlePixel+j+3])[7] << 17;
-      // TODO - I am losing the least significant bit when transferring data
-      // which results in the inability to control the blue subpixel of the
-      // bottom half of the display. Right now it looks like this:
-      //  msb 00000000000 lsb  (RGB = upper, rgb = lower)
-      //      RGBrgbRGBrg
-      // Now, send the color data to the server as a hex string of 6 characters followed by a newline
-      jtagsrv.write(pad_string(Long.toHexString(word), 6) + "\n");
+    // Split the lines into chunks of 32 pixels
+    for(int j = i; j < i+img.width; j += 32) {
+      int shiftPosition = 0;
+      BigInteger bigint = BigInteger.valueOf(0);
+      // We want to get 8 "long" words and then combine them together later
+      for(int k = 0; k < 8; k++) {
+        long word = 0;
+        // Get the first 24 bits of color data -- 12 bits for the top panel...
+        word |= color_to_RGB_array(img.pixels[j+0+(4*k)])[p] << 3;
+        word |= color_to_RGB_array(img.pixels[j+1+(4*k)])[p] << 9;
+        word |= color_to_RGB_array(img.pixels[j+2+(4*k)])[p] << 15;
+        word |= color_to_RGB_array(img.pixels[j+3+(4*k)])[p] << 21;
+        // ... and 12 bits for the bottom panel
+        word |= color_to_RGB_array(img.pixels[middlePixel+j+0+(4*k)])[p];
+        word |= color_to_RGB_array(img.pixels[middlePixel+j+1+(4*k)])[p] << 6;
+        word |= color_to_RGB_array(img.pixels[middlePixel+j+2+(4*k)])[p] << 12;
+        word |= color_to_RGB_array(img.pixels[middlePixel+j+3+(4*k)])[p] << 18;
+        // Add this new word to the "bigint" accumulator
+        BigInteger shifted = BigInteger.valueOf(word).shiftLeft(shiftPosition);
+        bigint = bigint.or(shifted);
+        shiftPosition += 24;
+      }
+      // Now, send the color data to the server as a hex string of 12 characters followed by a newline
+      String hexStr = bigint.toString(16);
+      jtagsrv.write(pad_string(hexStr, 48) + "\n");      
+      // Increment transmission counter
       wordCount++;
     }
   }
-  println("* Sent frame " + ++frameNum + " containing " + wordCount + " words");
+  // Increment frame counter
+  frameNum++;
+  println("* Sent frame " + frameNum + " in " + wordCount + " words");
 }
 
 byte[] color_to_RGB_array(color c) {
-  // returns an array of 8 bytes (a byte contains 8 bits)
-  // result[7] is the most significant byte... result[0] is the least significant byte
-  // bytes are zero packed with Blue as least significant bit, then Red, then Green
-  // swap green/red
+  // Returns an array of 8 bytes of color data (a byte contains 8 bits) where
+  // result[7] is the most significant byte, result[0] is the least significant byte.
+  // Bytes are zero packed with Blue as least significant bit, then Red, then Green.
   byte r = (byte)(c >> 16);
   byte g = (byte)(c >> 8);
-  byte b = (byte)(c >> 0);
+  byte b = (byte)(c);
   byte[] result = new byte[8];
   for(int i = 0; i < 8; i++) {
     result[i] = 0;
     result[i] += (r & 1) << 2;
     result[i] += (g & 1) << 1;
-    result[i] += (b & 1) << 0;
+    result[i] += (b & 1);
     r = (byte)(r >> 1);
     g = (byte)(g >> 1);
     b = (byte)(b >> 1);
@@ -80,16 +89,20 @@ byte[] color_to_RGB_array(color c) {
 }
 
 void blank_leds(int number_of_leds) {
-  // erase the LED panel by sending all black pixels
-  for(int i = 0; i < number_of_leds/8; i++) {
-    jtagsrv.write("000000\n");
+  // Erase the LED panel by sending all "black" pixels
+  for(int i = 0; i < number_of_leds/64; i++) {
+    jtagsrv.write("000000000000000000000000000000000000000000000000\n");
   }
-  println("* Erased " + number_of_leds + " LEDs");
+  println("* Erased " + number_of_leds + " LEDs in " + number_of_leds/64 + " words");
 }
 
 String pad_string(String s, int len) {
+  // Left-pads a string with zeros until it meets the given length requirement
+  // Does nothing if the string is already at the required length
   if(s.length() > len) {
-    println("Error: Cannot pad string to requested length because it is too long!");
+    System.err.println("Error: Cannot pad string to requested length because it is too long!");
+    System.err.println("       The string is: " + s);
+    exit();
   }
   while(s.length() < len) {
     s = "0" + s;
