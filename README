@@ -11,16 +11,18 @@ work-in-progress.
 
 Also included in this project is client software that is used to send data to
 the circuit running on the FPGA. There are two parts to it. The first part is a
-Processing library that provides an easy way to send images to the server. The
+Processing library that provides an easy way to send images to the device. The
 second part is a small Tcl server script that interfaces with a ByteBlaster
-(through the Altera Tcl API) and provides a vendor-specific JTAG wrapper.
+(through the Altera Tcl API) and provides a vendor-specific JTAG wrapper over
+a TCP/IP socket.
 
 What's included:
 * de0-nano        Scripts specific to the DE0-Nano FPGA dev board
 * processing      Client library with usage example
-* tcl             Server script
+* tcl             Server script to interface with the virtual JTAG
 * vhdl            VHDL source code for the design to use on the FPGA
-  *  testbenches  VHDL to use for simulation of selected entities
+  * megawizard    Altera Megafunction IP code for the virtual JTAG
+  * testbenches   VHDL to use for simulation of selected entities
 
 Features implemented so far:
 * Read graphics data from RAM and display it on panel
@@ -35,3 +37,4 @@ Known issues:
   lost by the client
 * Configurations with more than 1 panel vertically have not been tested and
   most likely do not work correctly
+* Somewhat poor USB/JTAG throughput

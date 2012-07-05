@@ -1,0 +1,5 @@
+set_global_assignment -name IP_TOOL_NAME "Virtual JTAG"
+set_global_assignment -name IP_TOOL_VERSION "10.1"
+set_global_assignment -name VHDL_FILE [file join $::quartus(qip_path) "megawizard_vjtag.vhd"]
+set_global_assignment -name MISC_FILE [file join $::quartus(qip_path) "megawizard_vjtag_inst.vhd"]
+set_global_assignment -name MISC_FILE [file join $::quartus(qip_path) "megawizard_vjtag.cmp"]
