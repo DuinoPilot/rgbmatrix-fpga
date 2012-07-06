@@ -17,7 +17,7 @@ second part is a small Tcl server script that interfaces with a ByteBlaster
 a TCP/IP socket.
 
 What's included:
-* de0-nano        Scripts specific to the DE0-Nano FPGA dev board
+* de0-nano        Files specific to the DE0-Nano FPGA dev board
 * processing      Client library with usage example
 * tcl             Server script to interface with the virtual JTAG
 * vhdl            VHDL source code for the design to use on the FPGA
@@ -33,8 +33,6 @@ Features to become implemented soon:
 * Better than 3 bits per pixel (any multiple of 3)
 
 Known issues:
-* No way to reset to beginning of frame (in sofware) if the current position is
-  lost by the client
 * Configurations with more than 1 panel vertically have not been tested and
   most likely do not work correctly
 * Somewhat poor USB/JTAG throughput

@@ -67,7 +67,7 @@ begin
     -- A simple clock divider is used here because the LED matrix should be run relatively slow
     U_CLKDIV : entity work.clk_div
         generic map (
-            clk_in_freq => 25,
+            clk_in_freq => 50,
             clk_out_freq => 1
         )
         port map (

@@ -93,6 +93,12 @@ proc IncomingData {sock} {
         if {$data_len*4 == 192} then {
             # Write to the data register
             Write_JTAG_DR $line
+        } elseif {$data_len == 3 && $line == "RST"} then {
+            # Send reset command to the device
+            puts "* Sending reset command!"
+            Write_JTAG_IR 2
+            # Put the device back in "write to register" mode
+            Write_JTAG_IR 1
         } else {
             puts "DEBUG: Ignored incoming data of length $data_len chars"
         }

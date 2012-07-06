@@ -33,16 +33,17 @@ use work.rgbmatrix.all;
 
 entity jtag_iface is
     port (
-        rst    : in  std_logic;
-        output : out std_logic_vector(DATA_WIDTH-1 downto 0);
-        valid  : out std_logic
+        rst     : in  std_logic;
+        rst_out : out std_logic;
+        output  : out std_logic_vector(DATA_WIDTH-1 downto 0);
+        valid   : out std_logic
     );
 end jtag_iface;
 
 architecture bhv of jtag_iface is
     -- External/raw JTAG signals
     signal jtag_tdo, jtag_tck, jtag_tdi, jtag_sdr : std_logic;
-    signal jtag_ir_in : std_logic_vector(0 downto 0);
+    signal jtag_ir_in : std_logic_vector(1 downto 0);
     -- Internal JTAG signals
     signal dr_select : std_logic;
     signal dr0 : std_logic;
@@ -54,7 +55,7 @@ begin
     -- Altera Virtual JTAG "megafunction"
     U_vJTAG : entity work.megawizard_vjtag
         port map (
-            ir_out => "0",
+            ir_out => "00",
             tdo    => jtag_tdo,
             ir_in  => jtag_ir_in,
             tck    => jtag_tck,
@@ -69,8 +70,11 @@ begin
             virtual_state_uir  => open
         );
     
-    -- Break out the instruction register which we use to select the destination data register
+    -- Break out the instruction register's low bit which we use to select the destination data register
     dr_select <= jtag_ir_in(0);
+    
+    -- Break out the instruction register's high bit which we use to perform a self-reset
+    rst_out <= jtag_ir_in(1);
     
     -- Clocked process to shift data into the data registers
     process(rst, jtag_tck, dr_select)

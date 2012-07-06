@@ -47,8 +47,8 @@ entity top_level is
 end top_level;
 
 architecture str of top_level is
-    -- Reset signal
-    signal rst : std_logic;
+    -- Reset signals
+    signal rst, rst_p, jtag_rst_out : std_logic;
     
     -- Memory signals
     signal addr : std_logic_vector(ADDR_WIDTH-1 downto 0);
@@ -59,8 +59,10 @@ architecture str of top_level is
     signal data_valid : std_logic;
 begin
     
-    -- Reset is an "active low" input
-    rst <= not rst_n;
+    -- Reset button is an "active low" input, invert it so we can treat is as
+    -- "active high", then OR it with the JTAG reset command output signal.
+    rst_p <= not rst_n;
+    rst <= rst_p or jtag_rst_out;
     
     -- LED panel controller
     U_LEDCTRL : entity work.ledctrl
@@ -88,9 +90,10 @@ begin
     -- Virtual JTAG interface
     U_JTAGIFACE : entity work.jtag_iface
         port map (
-            rst    => rst,
-            output => data_incoming,
-            valid  => data_valid
+            rst     => rst,
+            rst_out => jtag_rst_out,
+            output  => data_incoming,
+            valid   => data_valid
         );
     
     -- Special memory for the framebuffer

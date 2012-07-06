@@ -42,9 +42,9 @@ USE altera_mf.all;
 ENTITY megawizard_vjtag IS
 	PORT
 	(
-		ir_out		: IN STD_LOGIC_VECTOR (0 DOWNTO 0);
+		ir_out		: IN STD_LOGIC_VECTOR (1 DOWNTO 0);
 		tdo		: IN STD_LOGIC ;
-		ir_in		: OUT STD_LOGIC_VECTOR (0 DOWNTO 0);
+		ir_in		: OUT STD_LOGIC_VECTOR (1 DOWNTO 0);
 		tck		: OUT STD_LOGIC ;
 		tdi		: OUT STD_LOGIC ;
 		virtual_state_cdr		: OUT STD_LOGIC ;
@@ -63,7 +63,7 @@ ARCHITECTURE SYN OF megawizard_vjtag IS
 
 	SIGNAL sub_wire0	: STD_LOGIC ;
 	SIGNAL sub_wire1	: STD_LOGIC ;
-	SIGNAL sub_wire2	: STD_LOGIC_VECTOR (0 DOWNTO 0);
+	SIGNAL sub_wire2	: STD_LOGIC_VECTOR (1 DOWNTO 0);
 	SIGNAL sub_wire3	: STD_LOGIC ;
 	SIGNAL sub_wire4	: STD_LOGIC ;
 	SIGNAL sub_wire5	: STD_LOGIC ;
@@ -88,10 +88,10 @@ ARCHITECTURE SYN OF megawizard_vjtag IS
 	PORT (
 			virtual_state_cir	: OUT STD_LOGIC ;
 			virtual_state_pdr	: OUT STD_LOGIC ;
-			ir_in	: OUT STD_LOGIC_VECTOR (0 DOWNTO 0);
+			ir_in	: OUT STD_LOGIC_VECTOR (1 DOWNTO 0);
 			tdi	: OUT STD_LOGIC ;
 			virtual_state_udr	: OUT STD_LOGIC ;
-			ir_out	: IN STD_LOGIC_VECTOR (0 DOWNTO 0);
+			ir_out	: IN STD_LOGIC_VECTOR (1 DOWNTO 0);
 			tck	: OUT STD_LOGIC ;
 			virtual_state_e1dr	: OUT STD_LOGIC ;
 			virtual_state_uir	: OUT STD_LOGIC ;
@@ -105,7 +105,7 @@ ARCHITECTURE SYN OF megawizard_vjtag IS
 BEGIN
 	virtual_state_cir    <= sub_wire0;
 	virtual_state_pdr    <= sub_wire1;
-	ir_in    <= sub_wire2(0 DOWNTO 0);
+	ir_in    <= sub_wire2(1 DOWNTO 0);
 	tdi    <= sub_wire3;
 	virtual_state_udr    <= sub_wire4;
 	tck    <= sub_wire5;
@@ -119,7 +119,7 @@ BEGIN
 	GENERIC MAP (
 		sld_auto_instance_index => "YES",
 		sld_instance_index => 0,
-		sld_ir_width => 1,
+		sld_ir_width => 2,
 		sld_sim_action => "",
 		sld_sim_n_scan => 0,
 		sld_sim_total_length => 0,
@@ -153,12 +153,12 @@ END SYN;
 -- Retrieval info: LIBRARY: altera_mf altera_mf.altera_mf_components.all
 -- Retrieval info: CONSTANT: SLD_AUTO_INSTANCE_INDEX STRING "YES"
 -- Retrieval info: CONSTANT: SLD_INSTANCE_INDEX NUMERIC "0"
--- Retrieval info: CONSTANT: SLD_IR_WIDTH NUMERIC "1"
+-- Retrieval info: CONSTANT: SLD_IR_WIDTH NUMERIC "2"
 -- Retrieval info: CONSTANT: SLD_SIM_ACTION STRING ""
 -- Retrieval info: CONSTANT: SLD_SIM_N_SCAN NUMERIC "0"
 -- Retrieval info: CONSTANT: SLD_SIM_TOTAL_LENGTH NUMERIC "0"
--- Retrieval info: USED_PORT: ir_in 0 0 1 0 OUTPUT NODEFVAL "ir_in[0..0]"
--- Retrieval info: USED_PORT: ir_out 0 0 1 0 INPUT NODEFVAL "ir_out[0..0]"
+-- Retrieval info: USED_PORT: ir_in 0 0 2 0 OUTPUT NODEFVAL "ir_in[1..0]"
+-- Retrieval info: USED_PORT: ir_out 0 0 2 0 INPUT NODEFVAL "ir_out[1..0]"
 -- Retrieval info: USED_PORT: tck 0 0 0 0 OUTPUT NODEFVAL "tck"
 -- Retrieval info: USED_PORT: tdi 0 0 0 0 OUTPUT NODEFVAL "tdi"
 -- Retrieval info: USED_PORT: tdo 0 0 0 0 INPUT NODEFVAL "tdo"
@@ -170,9 +170,9 @@ END SYN;
 -- Retrieval info: USED_PORT: virtual_state_sdr 0 0 0 0 OUTPUT NODEFVAL "virtual_state_sdr"
 -- Retrieval info: USED_PORT: virtual_state_udr 0 0 0 0 OUTPUT NODEFVAL "virtual_state_udr"
 -- Retrieval info: USED_PORT: virtual_state_uir 0 0 0 0 OUTPUT NODEFVAL "virtual_state_uir"
--- Retrieval info: CONNECT: @ir_out 0 0 1 0 ir_out 0 0 1 0
+-- Retrieval info: CONNECT: @ir_out 0 0 2 0 ir_out 0 0 2 0
 -- Retrieval info: CONNECT: @tdo 0 0 0 0 tdo 0 0 0 0
--- Retrieval info: CONNECT: ir_in 0 0 1 0 @ir_in 0 0 1 0
+-- Retrieval info: CONNECT: ir_in 0 0 2 0 @ir_in 0 0 2 0
 -- Retrieval info: CONNECT: tck 0 0 0 0 @tck 0 0 0 0
 -- Retrieval info: CONNECT: tdi 0 0 0 0 @tdi 0 0 0 0
 -- Retrieval info: CONNECT: virtual_state_cdr 0 0 0 0 @virtual_state_cdr 0 0 0 0

@@ -16,9 +16,9 @@
 component megawizard_vjtag
 	PORT
 	(
-		ir_out		: IN STD_LOGIC_VECTOR (0 DOWNTO 0);
+		ir_out		: IN STD_LOGIC_VECTOR (1 DOWNTO 0);
 		tdo		: IN STD_LOGIC ;
-		ir_in		: OUT STD_LOGIC_VECTOR (0 DOWNTO 0);
+		ir_in		: OUT STD_LOGIC_VECTOR (1 DOWNTO 0);
 		tck		: OUT STD_LOGIC ;
 		tdi		: OUT STD_LOGIC ;
 		virtual_state_cdr		: OUT STD_LOGIC ;
