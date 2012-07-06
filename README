@@ -31,8 +31,3 @@ Features implemented so far:
 
 Features to become implemented soon:
 * Better than 3 bits per pixel (any multiple of 3)
-
-Known issues:
-* Configurations with more than 1 panel vertically have not been tested and
-  most likely do not work correctly
-* Somewhat poor USB/JTAG throughput

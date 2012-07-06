@@ -6,20 +6,23 @@ import java.awt.image.*;
 import java.awt.MouseInfo;
 
 // Constants
-static final int imgWidth  = 64, // Width of LED array (a multiple of 32)
-                 imgHeight = 16, // Height of LED array (a multiple of 16)
-                 imgScale  = 10; // Scale factor of displayed preview
+static final int panelsWide = 1, // How many panels wide is your display?
+                 panelsTall = 1, // How many panels tall is your display?
+                 imgScale   = 10; // Scale factor for displayed preview
 
 // Global variables
 PImage img;
 Robot bot; // For screen capture
+
+final int imgWidth = pixelsWide*panelsWide;
+final int imgHeight = pixelsTall*panelsTall;
 
 void setup() {
   // Try to establish connection
   if(!vjtag_client_connect()) return;
   
   // Erase the display before starting
-  blank_leds(imgWidth*imgHeight);
+  blank_leds();
   
   // Initialize capture code
   GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
@@ -34,6 +37,7 @@ void setup() {
   // Setup the window
   size(imgWidth * imgScale, imgHeight * imgScale);
   background(0);
+  frameRate(30); // max FPS
 }
 
 void draw() {
@@ -52,13 +56,15 @@ void draw() {
   // Capture rectangle from screen, convert BufferedImage to PImage
   img = new PImage(bot.createScreenCapture(r));
   img.loadPixels(); // Make pixel array readable
-
-  // Display captured image and issue to LED array as well
+  
+  // Rearrange image if necessary for this panel configuration
+  PImage rearrangedImg = rearrange(img);
+  
+  // Display captured image
   scale(imgScale);
   image(img, 0, 0);
-  refresh(img);
   
-  // Delay the refresh so the FPGA gets a chance to receive all the data
-  delay(100);
+  // Issue to LED array
+  refresh(rearrangedImg);
 }
 
