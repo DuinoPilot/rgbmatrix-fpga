@@ -57,14 +57,11 @@ void draw() {
   img = new PImage(bot.createScreenCapture(r));
   img.loadPixels(); // Make pixel array readable
   
-  // Rearrange image if necessary for this panel configuration
-  PImage rearrangedImg = rearrange(img);
-  
   // Display captured image
   scale(imgScale);
   image(img, 0, 0);
   
   // Issue to LED array
-  refresh(rearrangedImg);
+  refresh(img);
 }
 

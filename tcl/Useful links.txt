@@ -1,0 +1,3 @@
+http://en.wikipedia.org/wiki/Tcl
+http://wiki.tcl.tk/
+http://antirez.com/articoli/tclmisunderstood.html

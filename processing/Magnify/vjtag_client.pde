@@ -14,7 +14,6 @@ static final int pixelsWide = 32,
 
 // Global variables
 Client jtagsrv;
-long frameNum = 0; // count the number of frames sent
 
 boolean vjtag_client_connect() {
   // Connect to the Virtual JTAG server
@@ -31,46 +30,42 @@ boolean vjtag_client_connect() {
 }
 
 void refresh(PImage img) {
+  // Electrically, all the panels are dasiy-chained together into one very long display
+  // However in reality, we may have our panels in any arbitrary rectangular arrangement
+  // This function slides a small "window" frame over the image in the correct order and
+  // sends the data to the FPGA one panel's worth of pixels at a time.
+  int regionsCopied = 0;
+  PImage frame = new PImage(pixelsWide*panelsWide*panelsTall, pixelsTall);
+  // For each panel in height of display...
+  for(int y = 0; y < panelsTall*pixelsTall; y += pixelsTall) {
+    // Rearrange region
+    frame.copy(img, 0, y, pixelsWide*panelsWide, pixelsTall, pixelsWide*panelsWide*regionsCopied, 0, pixelsWide*panelsWide, pixelsTall);
+    regionsCopied++;
+  }
+  // Send the frame over the wire
+  push_frame(frame);
+}
+
+void push_frame(PImage frame) {
   // Convert the pixel data into a format that can be sent to the FPGA,
   // then send it over the connection to the virtual JTAG server
-  int writeCount = 0;
-  int middlePixel = pixelsWide*panelsWide*pixelsTall*panelsTall/2;
-  int p = 7; // There are 8 bits per sub-pixel, but for now we only use the highest bit
-  img.loadPixels(); // ensure that img.pixels[] is present and up-to-date
-  // For each pair of horizontal lines in the image...
-  for(int i = 0; i < middlePixel; i += pixelsWide*panelsWide) {
-    // Split the lines into chunks of pixels exactly 1 panel-width long
-    for(int j = i; j < i+pixelsWide*panelsWide; j += pixelsWide) {
-      int shiftPosition = 0;
-      BigInteger bigint = BigInteger.valueOf(0);
-      // We want to get 8 "long" words and then combine them together later
-      for(int k = 0; k < 8; k++) {
-        long word = 0;
-        // Get the first 24 bits of color data -- 12 bits for the top panel...
-        word |= color_to_RGB_array(img.pixels[j+0+(4*k)])[p] << 3;
-        word |= color_to_RGB_array(img.pixels[j+1+(4*k)])[p] << 9;
-        word |= color_to_RGB_array(img.pixels[j+2+(4*k)])[p] << 15;
-        word |= color_to_RGB_array(img.pixels[j+3+(4*k)])[p] << 21;
-        // ... and 12 bits for the bottom panel
-        word |= color_to_RGB_array(img.pixels[middlePixel+j+0+(4*k)])[p];
-        word |= color_to_RGB_array(img.pixels[middlePixel+j+1+(4*k)])[p] << 6;
-        word |= color_to_RGB_array(img.pixels[middlePixel+j+2+(4*k)])[p] << 12;
-        word |= color_to_RGB_array(img.pixels[middlePixel+j+3+(4*k)])[p] << 18;
-        // Add this new word-chunk to the "bigint" accumulator
-        BigInteger shifted = BigInteger.valueOf(word).shiftLeft(shiftPosition);
-        bigint = bigint.or(shifted);
-        shiftPosition += 24; // get ready for the next word-chunk...
-      }
-      // Now, send completed data to the server as a hex string of 12 characters followed by a newline
-      String hexStr = bigint.toString(16);
-      jtagsrv.write(pad_string(hexStr, 48) + "\n");      
-      // Increment the transmission counter
-      writeCount++;
-    }
+  final int middlePixel = (frame.width*frame.height)/2;
+  final int hexChars = (frame.width*frame.height*3)/4;
+  int p = 7; // we only support 3bpp, so just want the color's MSB
+  BigInteger bigint = BigInteger.valueOf(0);
+  frame.loadPixels();
+  // Read in the frame, 6 bits at a time
+  for(int i = 0; i < middlePixel; i++) {
+    byte hi_lo = 0;
+    hi_lo |= color_to_RGB_array(frame.pixels[i])[p] << 3;
+    hi_lo |= color_to_RGB_array(frame.pixels[middlePixel+i])[p];    
+    // Add this new data to the "bigint" accumulator
+    BigInteger shifted = BigInteger.valueOf(hi_lo).shiftLeft(i*6);
+    bigint = bigint.or(shifted);
   }
-  // Increment the frame counter
-  frameNum++;
-  println("* Sent frame " + frameNum + " in " + writeCount + " writes");
+  // Now, send completed data to the server as a hex string followed by a newline
+  String hexStr = pad_string(bigint.toString(16), hexChars);
+  jtagsrv.write(hexStr + "\n");
 }
 
 byte[] color_to_RGB_array(color c) {
@@ -103,7 +98,6 @@ void blank_leds() {
   // Erase the LED panel by sending all "black" pixels
   for(int i = 0; i < panelsTall*pixelsTall*panelsWide/2; i++) {
     jtagsrv.write("000000000000000000000000000000000000000000000000\n");
-    println(i);
   }
   println("* Reset and erased LED matrix panels");
 }
@@ -121,27 +115,5 @@ String pad_string(String s, int len) {
     s = "0" + s;
   }
   return s;
-}
-
-PImage rearrange(PImage src) {
-  // Electrically, all the panels are dasiy-chained together into one very long display
-  // However in reality, we may have our panels in any arbitrary rectangular arrangement
-  // This function rearranges the normal rectangular image into a very long rectangle
-  // which will stream to the FPGA without it having to do any extra work
-  int blocksCopied = 0;
-  final int destWidth = panelsWide*pixelsWide*panelsTall;
-  final int destHeight = pixelsTall;
-  // Create a target for the copied image
-  PImage dest = new PImage(destWidth, destHeight);
-  // For each panel in height of display...
-  for(int y = 0; y < panelsTall*pixelsTall; y += pixelsTall) {
-    // For each panel in width of display...
-    for(int x = 0; x < panelsWide*pixelsWide; x += pixelsWide) {
-      // Copy the panel's pixels to the destination
-      dest.copy(src, x, y, pixelsWide, pixelsTall, pixelsWide*blocksCopied, 0, pixelsWide, pixelsTall);
-      blocksCopied++;
-    }
-  }
-  return dest;
 }
 
