@@ -84,7 +84,7 @@ begin
             oe  => oe,
             -- Connection with framebuffer
             addr => addr,
-            pixel => data_outgoing
+            data => data_outgoing
         );
     
     -- Virtual JTAG interface

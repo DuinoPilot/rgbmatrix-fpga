@@ -24,10 +24,8 @@ What's included:
   * megawizard    Altera Megafunction IP code for the virtual JTAG
   * testbenches   VHDL to use for simulation of selected entities
 
-Features implemented so far:
+Features implemented:
 * Read graphics data from RAM and display it on panel
 * Support multiple panels
 * Read video data from external device and fill into RAM
-
-Features to become implemented soon:
-* Better than 3 bits per pixel (any multiple of 3)
+* User configurable pixel depth (brightness control)

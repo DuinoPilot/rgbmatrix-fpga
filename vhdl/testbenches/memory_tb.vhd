@@ -59,7 +59,7 @@ begin
     
     -- Stimulus process
     process
-    begin		
+    begin
         -- Hold reset state
         rst <= '1';
         clk_wr <= '0';

@@ -1,5 +1,5 @@
 -- Adafruit RGB LED Matrix Display Driver
--- Testbench for simulation of the top level entity
+-- Testbench for simulation of the LED matrix finite state machine
 -- 
 -- Copyright (c) 2012 Brian Nezvadovitz <http://nezzen.net>
 -- This software is distributed under the terms of the MIT License shown below.
@@ -25,33 +25,36 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
-entity testbench is
-end testbench;
+use work.rgbmatrix.all;
 
-architecture tb of testbench is
-    signal clk_in, rst_n : std_logic;
-    signal clk_out, r1, r2, b1, b2, g1, g2, a, b, c, lat, oe : std_logic;
+entity ledctrl_tb is
+end ledctrl_tb;
+
+architecture tb of ledctrl_tb is
     constant clk_period : time := 20 ns; -- for a 50MHz clock
     constant num_cycles : positive := 10; -- change this to your liking
+    --
+    signal clk_in, rst, clk_out, lat, oe : std_logic;
+    signal rgb1     : std_logic_vector(2 downto 0);
+    signal rgb2     : std_logic_vector(2 downto 0);
+    signal led_addr : std_logic_vector(2 downto 0);
+    signal addr     : std_logic_vector(ADDR_WIDTH-1 downto 0);
+    signal data     : std_logic_vector(DATA_WIDTH-1 downto 0);
 begin
     
     -- Instantiate the Unit Under Test (UUT)
-    UUT : entity work.top_level
+    UUT : entity work.ledctrl
         port map (
-            clk_in => clk_in,
-            rst_n => rst_n,
-            clk_out => clk_out,
-            r1 => r1,
-            r2 => r2,
-            b1 => b1,
-            b2 => b2,
-            g1 => g1,
-            g2 => g2,
-            a => a,
-            b => b,
-            c => c,
-            lat => lat,
-            oe => oe
+            clk_in   => clk_in,
+            rst      => rst,
+            clk_out  => clk_out,
+            rgb1     => rgb1,
+            rgb2     => rgb2,
+            led_addr => led_addr,
+            lat      => lat,
+            oe       => oe,
+            addr     => addr,
+            data     => data
         );
     
     -- Clock process
@@ -66,10 +69,11 @@ begin
     -- Stimulus process
     process
     begin
+        data <= (others => '0');
         -- Hold reset state
-        rst_n <= '0';
+        rst <= '1';
         wait for clk_period/2;
-        rst_n <= '1';
+        rst <= '0';
         -- Perform the simulation
         wait for clk_period*num_cycles;
         -- Wait forever
