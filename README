@@ -17,6 +17,9 @@ second part is a small Tcl server script that interfaces with a ByteBlaster
 a TCP/IP socket.
 
 What's included:
+* contrib         Additional files not required for building the project
+  * photos        Photographs of the design and hardware in use
+  * tutorial      Tutorial on how to setup, build, and use the design
 * de0-nano        Files specific to the DE0-Nano FPGA dev board
 * processing      Client library with usage example
 * tcl             Server script to interface with the virtual JTAG
@@ -29,3 +32,8 @@ Features implemented:
 * Support multiple panels
 * Read video data from external device and fill into RAM
 * User configurable pixel depth (brightness control)
+
+Demo videos:
+* http://www.youtube.com/watch?v=DWirBxcCs2A
+* http://www.youtube.com/watch?v=or1Qpbdxw2o
+* http://www.youtube.com/watch?v=0Zrrlw3kZHA

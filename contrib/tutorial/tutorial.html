@@ -1,0 +1,144 @@
+<!DOCTYPE HTML>
+<html>
+<!--
+
+THIS TUTORIAL DOCUMENT AND ASSOCIATED IMAGES ARE COPYRIGHT
+(C) 2012 BRIAN NEZVADOVITZ. "SOME RIGHTS RESERVED."
+
+THIS DOCUMENT AND ASSOCIATED IMAGES ARE DISTRIBUTED UNDER THE
+TERMS OF THE CREATIVE COMMONS ATTRIBUTION-SHAREALIKE 3.0 UNPORTED
+LICENSE. YOU CAN READ THE FULL TERMS OF THIS LIENSE ONLINE AT:
+http://creativecommons.org/licenses/by-sa/3.0/legalcode
+
+ACCORDING TO http://creativecommons.org/licenses/by-sa/3.0/ THIS
+MEANS YOU ARE FREE TO SHARE (COPY, DISTRIBUTE, AND TRANSMIT) THE
+WORK, TO REMIX (ADAPT) THE WORK, AND TO MAKE COMMERCIAL USE OF THE
+WORK UNDER THE CONDITIONS OF ATTRIBUTION AND "SHARE ALIKE".
+
+-->
+<head>
+    <meta charset="UTF-8">
+    <meta name="author" content="Brian Nezvadovitz">
+    <style type="text/css">
+        body {
+            font-family: sans-serif;
+        }
+    </style>
+    <title>Controlling the Adafruit 32x16 RGB LED Matrix with a DE0-Nano</title>
+</head>
+<body>
+
+<h1>Controlling the Adafruit 32x16 RGB LED Matrix<br />with a DE0-Nano FPGA Board</h1>
+
+<p>Adafruit currently sells a really cool <a href="http://www.adafruit.com/products/420">16x32 RGB LED matrix panel</a> in their store that is "designed to be driven by an FPGA or other high speed processor." The purpose of this tutorial is to help you get started driving a small handful of these displays with the <a href="http://www.adafruit.com/category/products/451">DE0-Nano board</a>, which contains a mid-range Altera FPGA.</p>
+
+<h2>Prerequisites</h2>
+
+<p>This tutorial assumes that you're already somewhat familiar with electronics, digital logic, editing source code, using IDEs, and installing Windows device drivers.</p>
+
+<p>You need to have the Quartus II software installed on your computer. If not, you can download it from <a href="http://www.altera.com/">Altera's website</a> or install it from the DVD that comes with the DE0-Nano board. You will also need to install the USB-Blaster drivers that enable your computer to communicate with the FPGA (see this short <a href="http://www.youtube.com/watch?v=cezEo9itJBM&t=10s">YouTube video</a>).</p>
+
+<p>On you are all set up and ready to begin, download the necessary files for this project from its <a href="https://github.com/brianez21/rgbmatrix-fpga">GitHub repository</a> (click on the "ZIP" icon).</p>
+
+<h2>User configuration</h2>
+
+<p>Open the file <code>vhdl/config.vhd</code> in a text editor and change line 32 (<code>constant NUM_PANELS</code>...) to indicate the total number of LED panels you have daisy-chained together in your display. For example, if you are using a 1x2 or 2x1 grid, you will want to change the line to:</p>
+
+<p><code>constant NUM_PANELS : integer := 2;</code></p>
+
+<p>You may optionally edit line 33 (<code>constant PIXEL_DEPTH</code>...) in a similar manner to indicate how many bits-per-pixel you want to use. This will affect the level of brightness control available to you later. Finally, save the file!</p>
+
+<h2>Creating the Quartus II project</h2>
+
+<p>Start Quartus II and open the "New Project Wizard" from the "File" menu. On the first page, name the project <code>rgbmatrix-fpga</code> (or something similar) and name the top-level entity <code>top_level</code>. Click Next.</p>
+
+<img src="newproject1.png" />
+
+<p>Now we will add the source code files to the project. Click the "..." button to open the file browser and select the <code>.vhd</code> files in the <code>vhdl</code> folder you downloaded earlier (do not include the <code>testbenches</code> directory). Click "..." again and open the <code>megawizard</code> folder. Set the type drop-down menu to "All Files (*.*)" so you can select the <code>.qip</code>, <code>.cmp</code>, and <code>megawizard_vjtag.vhd</code> files (do not include <code>megawizard_vjtag_inst.vhd</code>). Add them to the project and click Next.</p>
+
+<img src="newproject2.png" />
+
+<p>The FPGA chip in use on the DE0-Nano is the Cyclone IV EP4CE22F17C6N. You can find it by setting the device family to "Cyclone IV E", package to "FBGA", pin count to 256, and speed grade to 6. Select the chip and click Next.</p>
+
+<img src="newproject3.png" />
+
+<p>Set the "Simulation" tool name to "ModelSim-Altera" and the format to "VHDL". Leave everything else as "&lt;None&gt;" and click Next.</p>
+
+<img src="newproject4.png" />
+
+<p>Click Finish to create the project!</p>
+
+<h2>Pin settings</h2>
+
+<p>Now that the project has been created, you need to change two more settings before we can move on. Go to the Project Navigator panel in the top left area of Quartus and right click on the device ("Cyclone IV E: ..."). Select "Device" from the menu.</p>
+
+<img src="pintristate.png" />
+
+<p>A window will open. Click "Device and Pin Options...". In the left hand side of the new window that comes up, open the "Unused Pins" category. Change the "Reserve all unused pins" settings to "As input tri-stated". This will essentially prevent the unused pins on the FPGA from doing anything unwanted on the DE0-Nano when we program the design.</p>
+
+<p>Now select the "Voltage" category. Change the "Default I/O standard" to "3.3-V LVTTL". This is essential to do because the panels will not recognize a signal below this voltage.</p>
+
+<img src="voltage.png" />
+
+<p>Click OK, then click OK again.</p>
+
+<h2>Making pin assignments</h2>
+
+<p>Go to the "Assignments" menu and select "Import Assignments...". Import the <code>de0-nano/rgbmatrix-fpga.qsf</code> file. After you do this, a message should appear in the "System" console tab at the bottom of Quartus: "Import completed. 14 assignments were written (out of 14 read)."</p>
+
+<img src="importassignments.png" />
+
+<p>You can (optionally) customize the pin assignments that were imported by going to the "Assignments" menu and selecting "Assignment Editor". Additional information on the GPIO headers can be found in the <a href="http://www.terasic.com.tw/cgi-bin/page/archive.pl?Language=English&CategoryNo=139&No=593&PartNo=4">DE0-Nano PDF manual</a> (pages 18-20). A machine-readable mapping of FPGA pins to GPIO headers can also be found in the <code>de0-nano/DE0_Nano.qsf</code> file (open it with a text editor).</p>
+
+<img src="assignmenteditor.png" />
+
+<p>Save any changes. Now we are ready to connect the pins on the FPGA to the pins on the RGB LED matrix panel!</p>
+
+<img src="gpio0diagram.png" />
+
+<p>Please refer to the <a href="http://www.ladyada.net/wiki/tutorials/products/rgbledmatrix/index.html#wiring_the_16x32">Adafruit guide for wiring details</a> on the panel side. You may want to use <a href="http://www.adafruit.com/products/266">female-female jumper wires</a> to make the connections between the IDC pins!</p>
+
+<p><strong>Important:</strong> <em>DOUBLE-CHECK ALL YOUR CONNECTIONS BEFORE POWERING ON! Be sure the board's orientation matches the diagrams when you connect the wires!</em></p>
+
+<h2>Synthesizing the design</h2>
+
+<p>To synthesize the design, go to the "Processing" menu and select "Start Compilation", or click on the purple arrow icon in the toolbar. Synthesis should be quite fast since the design is small. After compilation is successful, you should have a new <code>.sof</code> file in your Quartus project directory. It should be 703,642 bytes long.</p>
+
+<h2>Uploading the bitfile</h2>
+
+<p>Plug in your DE0-Nano board via the USB connector. Now, go to the "Tools" menu and select "Programmer".</p>
+
+<img src="nohardware.png" />
+
+<p>In the top left of the window that appears, you should see "USB-Blaster [USB-0]". If instead you see "No Hardware", click on "Hardware Setup..." and (re-)select your device.</p>
+
+<img src="hardwaresetup.png" />
+
+<p>Now, select the <code>.sof</code> file in the list, ensure "Program/Configure" is checked, and click "Start"! This should take about a second.</p>
+
+<img src="programmer.png" />
+
+<p>The FPGA is now programmed with your design! (This only programmed the SRAM though, not the onboard EEPROM &mdash; so the design is only stored until power is turned off.)</p>
+
+<p>Note: In the future, you can use the command script <code>de0-nano/program.cmd</code> to quickly program the FPGA's SRAM with your <code>.sof</code> file (it uses the Quartus command line programming utility).</p>
+
+<h2>Running the Virtual JTAG interface server</h2>
+
+<p>Open the command script <code>tcl/run.cmd</code> in a text editor and ensure that the path to the <code>quartus_stp</code> executable is correct. Then, double click the script to launch the Virtual JTAG interface server (<code>tcl/vjtag_server.tcl</code>). This binds to a TCP port to allow programs and scripts to write data to the FPGA through Altera's Tcl API. This allows you to send video to the FPGA from any device that can communicate over the network! For example, a remote Arduino with a Wi-Fi shield, or an Android cellphone.</p>
+
+<img src="vjtagserver.png" />
+
+<h2>The included Processing demos and code</h2>
+
+<p>Two demos written in the <a href="http://www.processing.org/">Processing programming language</a> (a dialect of Java) are available in the <code>processing</code> folder. You can run either demo by copying its directory to your local sketchbook folder (usually <code>~/Processing</code>). The first demo, <code>Chaser</code> is a basic test animation. The second demo, <code>Magnify</code> sends a real-time screen capture to the panels through the FPGA.</p>
+
+<p>Note: When running the Processing demos, it is important to change the <code>panelsWide</code> and <code>panelsTall</code> constants at the top of the sketch to match your panel configuration! Otherwise, the sketch will not work properly.</p>
+
+<p>Both demos contain a copy of <code>vjtag_client.pde</code> which you can use to make you own Processing sketch that communicates with the board! In addition, the "protocol" that is used to interact with the Virtual JTAG server is extremely simple, and can easily be ported to another language such as Python.</p>
+
+<h2>Conclusion</h2>
+
+<p>That's it! I hope this tutorial was useful to you. Please feel free to <a href="https://github.com/brianez21/rgbmatrix-fpga">fork this project on GitHub</a> and contribute back any modifications or improvements! Thanks!</p>
+
+</body>
+</html>
