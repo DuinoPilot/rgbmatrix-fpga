@@ -24,6 +24,8 @@
 
 -- For some great documentation on how the RGB LED panel works, see this page:
 -- http://www.rayslogic.com/propeller/Programming/AdafruitRGB/AdafruitRGB.htm
+-- or this page
+-- http://www.ladyada.net/wiki/tutorials/products/rgbledmatrix/index.html#how_the_matrix_works
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -66,7 +68,6 @@ architecture bhv of ledctrl is
 begin
     
     -- A simple clock divider is used here to slow down this part of the circuit
-    -- http://www.ladyada.net/wiki/tutorials/products/rgbledmatrix/index.html#how_the_matrix_works
     U_CLKDIV : entity work.clk_div
         generic map (
             clk_in_freq  => 50000000, -- 50MHz input clock
